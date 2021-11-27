@@ -2,11 +2,29 @@ package main
 
 import (
 	"fmt"
+	"html/template"
 	"net/http"
 	"os"
+	"strconv"
 
 	"github.com/12ev09/gacha1/gacha"
 )
+
+var tmpl = template.Must(template.New("index").Parse(`<!DOCTYPE html>
+<html>
+	<head><title>ガチャ</title></head>
+	<body>
+		<form action="/draw">
+			<label for="num">枚数</input>
+			<input type="number" name="num" min="1" value="1">
+			<input type="submit" value="ガチャを引く">
+		</form>
+		<h1>結果一覧</h1>
+		<ol>{{range .}}
+		<li>{{.}}</li>
+		{{end}}</ol>
+	</body>
+</html>`))
 
 func main() {
 	if err := run(); err != nil {
@@ -16,14 +34,33 @@ func main() {
 }
 
 func run() error {
-	// チケットとコインの枚数を入れる
 	p := gacha.NewPlayer(10, 100)
 	// ※本当はハンドラ間で競合が起きるのでNG
 	play := gacha.NewPlay(p)
 
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		//テンプレートに結果の一覧を埋め込んでレスポンスにする
+		if err := tmpl.Execute(w, play.Result()); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+	})
+
 	http.HandleFunc("/draw", func(w http.ResponseWriter, r *http.Request) {
-		if play.Draw() {
-			fmt.Fprintln(w, play.Result())
+		// TODO: r.FormValueメソッドを使ってフォームで入力したガチャの回数を取得
+		// ガチャを行う回数は"num"で取得できる
+
+		//strconv.Atoi()でstringを整数に変換
+		num, err := strconv.Atoi(r.FormValue("num"))
+
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		for i := 0; i < num; i++ {
+			if !play.Draw() {
+				break
+			}
 		}
 
 		if err := play.Err(); err != nil {
@@ -31,7 +68,8 @@ func run() error {
 			return
 		}
 
-		fmt.Fprintln(w, "残り:", p.DrawableNum())
+		// TODO: "/"（トップ）にhttp.StatusFoundのステータスでリダイレクトする
+		http.Redirect(w, r, "/", http.StatusFound)
 	})
 
 	return http.ListenAndServe(":8080", nil)
