@@ -1,12 +1,10 @@
-// STEP03: gachaパッケージ公開しよう
-
 package main
 
 import (
 	"fmt"
 
 	// TODO: インポートパスを公開したものに変更する
-	"github.com/12ev09/gacha"
+	"github.com/12ev09/gacha1/gacha"
 )
 
 func main() {
