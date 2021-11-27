@@ -46,7 +46,7 @@ func run() error {
 		return err
 	}
 
-	p := gacha.NewPlayer(10, 100)
+	p := gacha.NewPlayer(100, 100)
 
 	play := gacha.NewPlay(p)
 
@@ -66,6 +66,7 @@ func run() error {
 	})
 
 	http.HandleFunc("/draw", func(w http.ResponseWriter, r *http.Request) {
+		// requestの"num"から値を取得して、整数型に変換
 		num, err := strconv.Atoi(r.FormValue("num"))
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -132,7 +133,7 @@ func getResults(db *sql.DB, limit int) ([]*gacha.Card, error) {
 	var results []*gacha.Card
 	for rows.Next() {
 		var card gacha.Card
-		rows.Scan(&card)
+		rows.Scan(&card.Rarity, &card.Name)
 
 		if err != nil {
 			return nil, fmt.Errorf("Scan:%w", err)
